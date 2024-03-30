@@ -9,8 +9,10 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"runtime"
 
 	ma "github.com/multiformats/go-multiaddr"
+	globalstore "github.com/sakul-budhathoki/go-store"
 )
 
 // Conn is the equivalent of a net.Conn object. It is the
@@ -387,6 +389,22 @@ func WrapPacketConn(pc net.PacketConn) (PacketConn, error) {
 
 // InterfaceMultiaddrs will return the addresses matching net.InterfaceAddrs
 func InterfaceMultiaddrs() ([]ma.Multiaddr, error) {
+
+	if runtime.GOOS == "android" {
+		addrStrings := globalstore.GetGlobalStore().Get("multiaddr")
+		var maddrs []ma.Multiaddr
+		if addrStringsSlice, ok := addrStrings.([]string); ok {
+			for _, addrStr := range addrStringsSlice {
+				addr, err := ma.NewMultiaddr(addrStr)
+				if err == nil {
+					maddrs = append(maddrs, addr)
+				}
+			}
+
+			return maddrs, nil
+		}
+	}
+
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		return nil, err
